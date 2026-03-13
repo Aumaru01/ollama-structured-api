@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  # -------------------------------------------------------
+  # Ollama — Self-hosted LLM engine
+  # -------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # API — FastAPI wrapper around Ollama
+  # -------------------------------------------------------
+  api:
+    build: .
+    container_name: ollama-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # Model puller — one-shot container to pull default model
+  # -------------------------------------------------------
+  model-pull:
+    image: curlimages/curl:latest
+    container_name: ollama-model-pull
+    depends_on:
+      - ollama
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Ollama to start...' &&
+        sleep 10 &&
+        echo 'Pulling llama3 model (this may take a while)...' &&
+        curl -s http://ollama:11434/api/pull -d '{\"name\": \"llama3\"}' &&
+        echo 'Model pull complete!'
+      "
+
+volumes:
+  ollama_data:
