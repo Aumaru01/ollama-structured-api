@@ -11,10 +11,24 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# ----- Load .env config -----
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+    echo -e "${GREEN}[✓] Loaded config from .env${NC}"
+else
+    echo -e "${YELLOW}[!] No .env file found, using defaults${NC}"
+fi
+
+API_PORT="${API_PORT:-8000}"
+OLLAMA_PORT="${OLLAMA_PORT:-11434}"
+DEFAULT_MODEL="${DEFAULT_MODEL:-llama3}"
+
 echo ""
 echo "=========================================="
 echo "   Ollama LLM API — Starting Up"
 echo "=========================================="
+echo ""
+echo "  Config: API_PORT=${API_PORT} | OLLAMA_PORT=${OLLAMA_PORT} | MODEL=${DEFAULT_MODEL}"
 echo ""
 
 # ----- Step 1: Detect NVIDIA GPU -----
@@ -65,10 +79,10 @@ echo "=========================================="
 echo -e "${GREEN}   All services started!${NC}"
 echo "=========================================="
 echo ""
-echo "  API:          http://localhost:8000"
-echo "  Swagger Docs: http://localhost:8000/docs"
-echo "  Ollama:       http://localhost:11434"
-echo "  Health Check: http://localhost:8000/health"
+echo "  API:          http://localhost:${API_PORT}"
+echo "  Swagger Docs: http://localhost:${API_PORT}/docs"
+echo "  Ollama:       http://localhost:${OLLAMA_PORT}"
+echo "  Health Check: http://localhost:${API_PORT}/health"
 echo ""
 echo "  Pull more models:  docker exec ollama ollama pull <model>"
 echo "  View logs:         docker compose ${COMPOSE_FILES} logs -f"
