@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
 
+from examples_structure_template import EXAMPLE_TEMPLATES, ASK_REQUEST_EXAMPLES
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -37,114 +39,6 @@ app.add_middleware(
 # Schemas
 # ---------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------
-# Example templates — shown in Swagger docs and /examples endpoint
-# ---------------------------------------------------------------------------
-EXAMPLE_TEMPLATES = {
-    "person_info": {
-        "description": "Extract person information",
-        "question": "Tell me about Elon Musk",
-        "structure_template": {
-            "name": "string",
-            "age": "number",
-            "nationality": "string",
-            "occupation": "string",
-            "summary": "string"
-        }
-    },
-    "product_review": {
-        "description": "Analyze a product review",
-        "question": "Review the iPhone 15 Pro",
-        "structure_template": {
-            "product_name": "string",
-            "rating": "number (1-10)",
-            "pros": ["string"],
-            "cons": ["string"],
-            "verdict": "string"
-        }
-    },
-    "translate": {
-        "description": "Translate text with metadata",
-        "question": "Translate 'Hello, how are you?' to Japanese, Thai, and French",
-        "structure_template": {
-            "original_text": "string",
-            "original_language": "string",
-            "translations": [
-                {
-                    "language": "string",
-                    "translated_text": "string",
-                    "romanization": "string"
-                }
-            ]
-        }
-    },
-    "code_explanation": {
-        "description": "Explain a piece of code",
-        "question": "Explain what a Python decorator does",
-        "structure_template": {
-            "concept": "string",
-            "explanation": "string",
-            "example_code": "string",
-            "use_cases": ["string"],
-            "difficulty_level": "string (beginner/intermediate/advanced)"
-        }
-    },
-    "comparison": {
-        "description": "Compare two or more items",
-        "question": "Compare Python vs JavaScript for backend development",
-        "structure_template": {
-            "items": ["string"],
-            "criteria": [
-                {
-                    "name": "string",
-                    "scores": {"item_name": "number (1-10)"},
-                    "notes": "string"
-                }
-            ],
-            "winner": "string",
-            "conclusion": "string"
-        }
-    },
-    "summary": {
-        "description": "Summarize a topic",
-        "question": "Summarize the history of artificial intelligence",
-        "structure_template": {
-            "title": "string",
-            "key_points": ["string"],
-            "timeline": [
-                {
-                    "year": "string",
-                    "event": "string"
-                }
-            ],
-            "conclusion": "string"
-        }
-    },
-    "sentiment_and_data_extraction": {
-        "model": "qwen3.5:0.8b",
-        "temperature": 0.7,
-        "question": "Analyze the sentiment and extract information from this article.",
-        "structure_template":{ 
-            "sentiment" : "sentiment of article.",       
-            "word_and_scale":{
-                "positive_word_with_scale" : [
-                    {
-                    "word":"the positive word extracted.",
-                    "scale":"positive scale of word."
-                    }
-                ],
-                "negative_word_with_scale" : [
-                    {
-                    "word":"the word extracted.",
-                    "scale":"negative scale of word."
-                    }
-                ]
-            }
-        }
-    }
-}
-
-
 class AskRequest(BaseModel):
     """Request body for the /ask endpoint."""
     question: str = Field(..., description="The question or prompt to send to the model")
@@ -161,48 +55,7 @@ class AskRequest(BaseModel):
 
     model_config = {
         "json_schema_extra": {
-            "examples": [
-                {
-                    "question": "What is Python?",
-                    "model": "llama3",
-                    "structure_template": None,
-                    "temperature": 0.7
-                },
-                {
-                    "question": "Tell me about Elon Musk",
-                    "model": "llama3",
-                    "structure_template": {
-                        "name": "string",
-                        "age": "number",
-                        "nationality": "string",
-                        "occupation": "string",
-                        "summary": "string"
-                    },
-                    "temperature": 0.7
-                },
-                {
-                    "question": "Analyze the sentiment and extract information from this article.",
-                    "model": "qwen3.5:0.8b",
-                    "temperature": 0.7,
-                    "structure_template":{ 
-                        "sentiment" : "sentiment of article.",       
-                        "word_and_scale":{
-                            "positive_word_with_scale" : [
-                                {
-                                "word":"the positive word extracted.",
-                                "scale":"positive scale of word."
-                                }
-                            ],
-                            "negative_word_with_scale" : [
-                                {
-                                "word":"the word extracted.",
-                                "scale":"negative scale of word."
-                                }
-                            ]
-                        }
-                    }
-                }
-            ]
+            "examples": ASK_REQUEST_EXAMPLES
         }
     }
 
@@ -333,8 +186,13 @@ async def list_models():
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
     data = resp.json()
+    raw_models = data.get("models", [])
+
+    # Sort by size descending (largest first)
+    raw_models.sort(key=lambda m: m.get("size", 0), reverse=True)
+
     models = []
-    for m in data.get("models", []):
+    for m in raw_models:
         size_bytes = m.get("size", 0)
         size_str = f"{size_bytes / (1024**3):.1f} GB" if size_bytes else None
         models.append(ModelInfo(
