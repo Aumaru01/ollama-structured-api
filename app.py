@@ -45,7 +45,7 @@ app.add_middleware(
 class AskRequest(BaseModel):
     """Request body for the /ask endpoint."""
     question: str = Field(..., description="The question or prompt to send to the model")
-    model: str = Field(default="qwen3:8b", description="Ollama model name to use")
+    model: str = Field(default="qwen3.5:9b", description="Ollama model name to use")
     structure_template: Optional[dict] = Field(
         default=None,
         description=(

@@ -92,21 +92,21 @@ EXAMPLE_TEMPLATES = {
     "sentiment_and_data_extraction": {
         "model": "qwen3.5:0.8b",
         "temperature": 0.7,
-        "question": "Analyze the sentiment and extract information from this article: 'The quick brown fox jumps over the lazy dog'",
-        "structure_template":{
-            "summary": "brief summary of article.",
-            "sentiment" : "sentiment of article.",       
-            "word_and_scale":{
-                "positive_word_with_scale" : [
+        "question": "วิเคราะห์ sentiment และ extract information จากข้อความนี้: '<div>กองกำลังป้องกัน &nbsp;อิสราเอล &nbsp;(IDF) ปฏิบัติการโจมตีทางอากาศในกรุงเตหะรานเมื่อช่วงข้ามคืนที่ผ่านมา (17 มี.ค.) โดยมีเป้าหมายหลักเพื่อปลิดชีพ เอสมาอิล คาติบ &nbsp;รัฐมนตรี &nbsp;ว่าการกระทรวงข่าวกรองของ &nbsp;อิหร่าน &nbsp;ซึ่งขณะนี้กองทัพ &nbsp;อิสราเอล &nbsp;กำลังเร่งประเมินผลการโจมตีดังกล่าว เพื่อยืนยันชะตากรรมของ &nbsp;รัฐมนตรี &nbsp;รายนี้อย่างเป็นทางการ</div><br /><div>ทั้งนี้ ปฏิบัติการดังกล่าวได้รับการยืนยันจากเจ้าหน้าที่ทางการของอิสราเอล ภายหลังจากที่สำนักข่าวอิหร่าน อินเตอร์เนชันแนล (Iran International) เป็นสื่อแรกที่รายงานข่าวการโจมตีนี้ออกไป</div><br /><ul><li>* *</li></ul>'",
+        "structure_template": {
+            "summary": "บทสรุปแบบย่อของบทความ",
+            "sentiment": "sentiment ของบทความ",
+            "word_and_scale": {
+                "positive_word_with_scale": [
                     {
-                    "word":"the positive word extracted.",
-                    "score":"positive score of word.(1-5)"
+                        "word": "positive word extracted.",
+                        "score": "positive score of word.(1-5)"
                     }
                 ],
-                "negative_word_with_scale" : [
+                "negative_word_with_scale": [
                     {
-                    "word":"the word extracted.",
-                    "score":"negative score of word.(1-5)"
+                        "word": "negative word extracted.",
+                        "score": "negative score of word.(1-5)"
                     }
                 ]
             }
@@ -133,6 +133,29 @@ EXAMPLE_TEMPLATES = {
 # ---------------------------------------------------------------------------
 ASK_REQUEST_EXAMPLES = [
     {
+        "model": "qwen3.5:0.8b",
+        "temperature": 0.7,
+        "question": "วิเคราะห์ sentiment และ extract information จากข้อความนี้: '<div>กองกำลังป้องกัน &nbsp;อิสราเอล &nbsp;(IDF) ปฏิบัติการโจมตีทางอากาศในกรุงเตหะรานเมื่อช่วงข้ามคืนที่ผ่านมา (17 มี.ค.) โดยมีเป้าหมายหลักเพื่อปลิดชีพ เอสมาอิล คาติบ &nbsp;รัฐมนตรี &nbsp;ว่าการกระทรวงข่าวกรองของ &nbsp;อิหร่าน &nbsp;ซึ่งขณะนี้กองทัพ &nbsp;อิสราเอล &nbsp;กำลังเร่งประเมินผลการโจมตีดังกล่าว เพื่อยืนยันชะตากรรมของ &nbsp;รัฐมนตรี &nbsp;รายนี้อย่างเป็นทางการ</div><br /><div>ทั้งนี้ ปฏิบัติการดังกล่าวได้รับการยืนยันจากเจ้าหน้าที่ทางการของอิสราเอล ภายหลังจากที่สำนักข่าวอิหร่าน อินเตอร์เนชันแนล (Iran International) เป็นสื่อแรกที่รายงานข่าวการโจมตีนี้ออกไป</div><br /><ul><li>* *</li></ul>'",
+        "structure_template": {
+            "summary": "บทสรุปแบบย่อของบทความ",
+            "sentiment": "sentiment ของบทความ",
+            "word_and_scale": {
+                "positive_word_with_scale": [
+                    {
+                        "word": "positive word extracted.",
+                        "score": "positive score of word.(1-5)"
+                    }
+                ],
+                "negative_word_with_scale": [
+                    {
+                        "word": "negative word extracted.",
+                        "score": "negative score of word.(1-5)"
+                    }
+                ]
+            }
+        }
+    },
+    {
         "question": "What is Python?",
         "model": "qwen3.5:9b",
         "structure_template": None,
@@ -149,28 +172,5 @@ ASK_REQUEST_EXAMPLES = [
             "summary": "string"
         },
         "temperature": 0.7
-    },
-    {
-        "question": "Analyze the sentiment and extract information from this article: 'The quick brown fox jumps over the lazy dog'",
-        "model": "qwen3.5:9b",
-        "temperature": 0.7,
-        "structure_template": {
-            "summary": "brief summary of article.",
-            "sentiment": "sentiment of article.",
-            "word_and_scale": {
-                "positive_word_with_scale": [
-                    {
-                        "word": "the positive word extracted.",
-                        "score": "positive score of word.(1-5)"
-                    }
-                ],
-                "negative_word_with_scale": [
-                    {
-                        "word": "the word extracted.",
-                        "score": "negative score of word.(1-5)"
-                    }
-                ]
-            }
-        }
     }
 ]
