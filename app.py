@@ -70,13 +70,11 @@ class ResourceUsage(BaseModel):
     response_tokens: Optional[int] = Field(default=None, description="Number of tokens in the response")
     total_tokens: Optional[int] = Field(default=None, description="Total tokens (prompt + response)")
     cpu_usage_percent: Optional[float] = Field(default=None, description="CPU usage during request (%)")
-    memory_used_mb: Optional[float] = Field(default=None, description="System memory used (MB)")
-    memory_total_mb: Optional[float] = Field(default=None, description="System total memory (MB)")
+    memory_used_gb: Optional[str] = Field(default=None, description="System memory used (GB)")
     memory_usage_percent: Optional[float] = Field(default=None, description="System memory usage (%)")
     gpu_name: Optional[str] = Field(default=None, description="GPU name (if NVIDIA GPU detected)")
     gpu_usage_percent: Optional[float] = Field(default=None, description="GPU utilization (%) (if available)")
-    gpu_memory_used_mb: Optional[float] = Field(default=None, description="GPU memory used (MB) (if available)")
-    gpu_memory_total_mb: Optional[float] = Field(default=None, description="GPU total memory (MB) (if available)")
+    gpu_memory_used_gb: Optional[str] = Field(default=None, description="GPU memory used (GB) (if available)")
     gpu_memory_usage_percent: Optional[float] = Field(default=None, description="GPU memory usage (%) (if available)")
 
 
@@ -140,8 +138,7 @@ def _get_gpu_info() -> dict:
                 return {
                     "gpu_name": parts[0],
                     "gpu_usage_percent": float(parts[1]),
-                    "gpu_memory_used_mb": gpu_mem_used,
-                    "gpu_memory_total_mb": gpu_mem_total,
+                    "gpu_memory_used_gb": f"{gpu_mem_used / 1024:.1f}/{gpu_mem_total / 1024:.1f} GB",
                     "gpu_memory_usage_percent": round(gpu_mem_used / gpu_mem_total * 100, 1) if gpu_mem_total > 0 else None,
                 }
     except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
@@ -155,8 +152,7 @@ def _get_system_resources() -> dict:
         mem = psutil.virtual_memory()
         return {
             "cpu_usage_percent": psutil.cpu_percent(interval=0.1),
-            "memory_used_mb": round(mem.used / (1024 ** 2), 1),
-            "memory_total_mb": round(mem.total / (1024 ** 2), 1),
+            "memory_used_gb": f"{round(mem.used / (1024 ** 3), 1)}/{round(mem.total / (1024 ** 3), 1)} GB",
             "memory_usage_percent": mem.percent,
         }
     except Exception:
