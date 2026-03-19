@@ -16,7 +16,7 @@ if exist .env (
 
 if not defined API_PORT set API_PORT=8000
 if not defined OLLAMA_PORT set OLLAMA_PORT=11434
-if not defined DEFAULT_MODEL set DEFAULT_MODEL=llama3
+if not defined DEFAULT_MODEL set DEFAULT_MODEL=qwen3.5:9b
 
 echo.
 echo ==========================================

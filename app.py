@@ -5,6 +5,7 @@ Ollama Self-Hosted LLM API
 """
 
 import time
+import json
 import httpx
 import psutil
 import subprocess
@@ -12,8 +13,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
+from typing import Union, Optional
 
 from examples_structure_template import EXAMPLE_TEMPLATES, ASK_REQUEST_EXAMPLES
+from ollama_parameters import OLLAMA_PARAMETERS
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -42,7 +45,7 @@ app.add_middleware(
 class AskRequest(BaseModel):
     """Request body for the /ask endpoint."""
     question: str = Field(..., description="The question or prompt to send to the model")
-    model: str = Field(default="llama3", description="Ollama model name to use")
+    model: str = Field(default="qwen3:8b", description="Ollama model name to use")
     structure_template: Optional[dict] = Field(
         default=None,
         description=(
@@ -81,10 +84,11 @@ class ResourceUsage(BaseModel):
 class AskResponse(BaseModel):
     """Response body for the /ask endpoint."""
     model: str
-    question: str
-    answer: str
     structured: bool = Field(description="Whether a structure template was applied")
     resource_usage: ResourceUsage = Field(description="Resource usage metrics for this request")
+    question: str
+    answer:  Optional[Union[dict, str]] = Field(default=None, description="Model's answer in structured format (if template used)")
+
 
 class ModelInfo(BaseModel):
     name: str
@@ -166,47 +170,8 @@ def _nanosec_to_sec(ns: Optional[int]) -> Optional[float]:
     return round(ns / 1_000_000_000, 3)
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# Endpoints for use
 # ---------------------------------------------------------------------------
-
-@app.get("/models", summary="List available Ollama models", response_model=list[ModelInfo])
-async def list_models():
-    """Fetch the list of models currently available in the local Ollama instance."""
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
-            resp.raise_for_status()
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="Cannot connect to Ollama. Is it running?")
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=str(e))
-
-    data = resp.json()
-    raw_models = data.get("models", [])
-
-    # Sort by size descending (largest first)
-    raw_models.sort(key=lambda m: m.get("size", 0), reverse=True)
-
-    models = []
-    for m in raw_models:
-        size_bytes = m.get("size", 0)
-        size_str = f"{size_bytes / (1024**3):.1f} GB" if size_bytes else None
-        models.append(ModelInfo(
-            name=m.get("name", "unknown"),
-            size=size_str,
-            modified_at=m.get("modified_at"),
-        ))
-    return models
-
-@app.get("/examples", summary="List example structure templates")
-async def get_examples():
-    """
-    Returns a collection of ready-to-use structure_template examples.
-
-    Copy any template and use it in the POST /ask endpoint.
-    """
-    return EXAMPLE_TEMPLATES
-
 @app.post("/ask", summary="Ask a question to an Ollama model", response_model=AskResponse)
 async def ask(req: AskRequest):
     """
@@ -247,6 +212,7 @@ async def ask(req: AskRequest):
 
     data = resp.json()
     answer = data.get("response", "").strip()
+    answer = json.loads(answer) if req.structure_template is not None else answer
 
     # ---- Extract Ollama timing metrics (nanoseconds → seconds) ----
     prompt_tokens = data.get("prompt_eval_count")
@@ -286,6 +252,56 @@ async def ask(req: AskRequest):
         structured=req.structure_template is not None,
         resource_usage=resource_usage,
     )
+    
+    
+# ---------------------------------------------------------------------------
+# Endpoints for metadata (models, examples, parameters)
+# ---------------------------------------------------------------------------
+@app.get("/models", summary="List available Ollama models", response_model=list[ModelInfo])
+async def list_models():
+    """Fetch the list of models currently available in the local Ollama instance."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
+            resp.raise_for_status()
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Cannot connect to Ollama. Is it running?")
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+
+    data = resp.json()
+    raw_models = data.get("models", [])
+
+    # Sort by size descending (largest first)
+    raw_models.sort(key=lambda m: m.get("size", 0), reverse=True)
+
+    models = []
+    for m in raw_models:
+        size_bytes = m.get("size", 0)
+        size_str = f"{size_bytes / (1024**3):.1f} GB" if size_bytes else None
+        models.append(ModelInfo(
+            name=m.get("name", "unknown"),
+            size=size_str,
+            modified_at=m.get("modified_at"),
+        ))
+    return models
+
+@app.get("/examples", summary="List example structure templates")
+async def get_examples():
+    """
+    Returns a collection of ready-to-use structure_template examples.
+
+    Copy any template and use it in the POST /ask endpoint.
+    """
+    return EXAMPLE_TEMPLATES
+
+@app.get("/parameter_available", summary="List all tunable Ollama parameters")
+async def parameter_available():
+    """
+    Returns every parameter that Ollama accepts in the `options` object,
+    including type, default value, valid range, and description.
+    """
+    return OLLAMA_PARAMETERS
 
 
 # ---------------------------------------------------------------------------

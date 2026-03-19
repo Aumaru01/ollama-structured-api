@@ -134,13 +134,13 @@ EXAMPLE_TEMPLATES = {
 ASK_REQUEST_EXAMPLES = [
     {
         "question": "What is Python?",
-        "model": "llama3",
+        "model": "qwen3.5:9b",
         "structure_template": None,
         "temperature": 0.7
     },
     {
         "question": "Tell me about Elon Musk",
-        "model": "llama3",
+        "model": "qwen3.5:9b",
         "structure_template": {
             "name": "string",
             "age": "number",
@@ -152,7 +152,7 @@ ASK_REQUEST_EXAMPLES = [
     },
     {
         "question": "Analyze the sentiment and extract information from this article: 'The quick brown fox jumps over the lazy dog'",
-        "model": "qwen3.5:0.8b",
+        "model": "qwen3.5:9b",
         "temperature": 0.7,
         "structure_template": {
             "summary": "brief summary of article.",

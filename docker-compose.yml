@@ -43,8 +43,8 @@ services:
       sh -c "
         echo 'Waiting for Ollama to start...' &&
         sleep 10 &&
-        echo 'Pulling ${DEFAULT_MODEL:-llama3} model (this may take a while)...' &&
-        curl -s http://ollama:11434/api/pull -d '{\"name\": \"${DEFAULT_MODEL:-llama3}\"}' &&
+        echo 'Pulling ${DEFAULT_MODEL:-qwen3.5:9b} model (this may take a while)...' &&
+        curl -s http://ollama:11434/api/pull -d '{\"name\": \"${DEFAULT_MODEL:-qwen3.5:9b}\"}' &&
         echo 'Model pull complete!'
       "
 

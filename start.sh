@@ -21,7 +21,7 @@ fi
 
 API_PORT="${API_PORT:-8000}"
 OLLAMA_PORT="${OLLAMA_PORT:-11434}"
-DEFAULT_MODEL="${DEFAULT_MODEL:-llama3}"
+DEFAULT_MODEL="${DEFAULT_MODEL:-qwen3.5:9b}"
 
 echo ""
 echo "=========================================="
