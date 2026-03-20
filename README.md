@@ -150,12 +150,12 @@ curl -X POST http://localhost:8000/ask \
     "model": "llama3",
     "structure_template": {
       "sentiment": "overall sentiment",
-      "word_and_scale": {
-        "positive_word_with_scale": [
-          { "word": "positive word", "scale": "scale 0-1" }
+      "word_and_score": {
+        "positive_word_with_score": [
+          { "word": "positive word", "score": "score 0-1" }
         ],
-        "negative_word_with_scale": [
-          { "word": "negative word", "scale": "scale 0-1" }
+        "negative_word_with_score": [
+          { "word": "negative word", "score": "score 0-1" }
         ]
       }
     }

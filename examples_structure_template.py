@@ -96,14 +96,14 @@ EXAMPLE_TEMPLATES = {
         "structure_template": {
             "summary": "บทสรุปแบบย่อของบทความ",
             "sentiment": "sentiment ของบทความ",
-            "word_and_scale": {
-                "positive_word_with_scale": [
+            "word_and_score": {
+                "positive_word_with_score": [
                     {
                         "word": "positive word extracted.",
                         "score": "positive score of word.(1-5)"
                     }
                 ],
-                "negative_word_with_scale": [
+                "negative_word_with_score": [
                     {
                         "word": "negative word extracted.",
                         "score": "negative score of word.(1-5)"
@@ -139,14 +139,14 @@ ASK_REQUEST_EXAMPLES = [
         "structure_template": {
             "summary": "บทสรุปแบบย่อของบทความ",
             "sentiment": "sentiment ของบทความ",
-            "word_and_scale": {
-                "positive_word_with_scale": [
+            "word_and_score": {
+                "positive_word_with_score": [
                     {
                         "word": "positive word extracted.",
                         "score": "positive score of word.(1-5)"
                     }
                 ],
-                "negative_word_with_scale": [
+                "negative_word_with_score": [
                     {
                         "word": "negative word extracted.",
                         "score": "negative score of word.(1-5)"

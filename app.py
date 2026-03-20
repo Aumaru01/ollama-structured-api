@@ -212,7 +212,10 @@ async def ask(req: AskRequest):
 
     data = resp.json()
     answer = data.get("response", "").strip()
-    answer = json.loads(answer) if req.structure_template is not None else answer
+    try:
+        answer = json.loads(answer)
+    except:
+        answer = answer  # Keep as raw string if not valid JSON (e.g. if model ignored format instructions)
 
     # ---- Extract Ollama timing metrics (nanoseconds → seconds) ----
     prompt_tokens = data.get("prompt_eval_count")
