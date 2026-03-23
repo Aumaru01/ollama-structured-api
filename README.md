@@ -357,6 +357,144 @@ docker exec ollama ollama pull mistral
 
 Then select the model via the `model` field in your API request.
 
+## Import Custom GGUF Models
+
+In addition to pulling models from the Ollama Library, you can import your own GGUF files (e.g. downloaded from Hugging Face) into Ollama.
+
+### Method 1: Using a Modelfile (Recommended)
+
+Create a file named `Modelfile` and specify the path to your GGUF file:
+
+```Dockerfile
+# Modelfile
+FROM ./my-model-Q4_K_M.gguf
+
+# (Optional) Set a default system prompt
+SYSTEM """You are a helpful AI assistant."""
+
+# (Optional) Set default parameters
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER num_ctx 4096
+```
+
+Then build it as an Ollama model:
+
+```bash
+# Create the model from the Modelfile
+ollama create my-custom-model -f Modelfile
+
+# Test it
+ollama run my-custom-model "Hello!"
+
+# Use it via the API
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What is AI?",
+    "model": "my-custom-model"
+  }'
+```
+
+### Method 2: Quick One-Liner (for quick testing)
+
+```bash
+# Create a minimal Modelfile and build
+echo 'FROM ./model.gguf' > Modelfile
+ollama create test-model -f Modelfile
+```
+
+### Example: Download a GGUF from Hugging Face
+
+```bash
+# 1. Download the GGUF file (example: Typhoon2 Thai model)
+wget https://huggingface.co/scb10x/typhoon2-8b-instruct-GGUF/resolve/main/typhoon2-8b-instruct.Q4_K_M.gguf
+
+# 2. Create a Modelfile
+cat > Modelfile <<'EOF'
+FROM ./typhoon2-8b-instruct.Q4_K_M.gguf
+
+TEMPLATE """{{- if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+<|im_start|>assistant
+"""
+
+SYSTEM """You are a helpful AI assistant that can communicate in both Thai and English."""
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER num_ctx 8192
+PARAMETER stop "<|im_end|>"
+EOF
+
+# 3. Create the model in Ollama
+ollama create typhoon2-8b -f Modelfile
+
+# 4. Use it via the API
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Explain Machine Learning in simple terms",
+    "model": "typhoon2-8b"
+  }'
+```
+
+### Example: GGUF Vision Model (with image support)
+
+Some GGUF models support vision (e.g. LLaVA). You need to specify the multimodal projector file:
+
+```Dockerfile
+# Modelfile for a vision GGUF model
+FROM ./llava-v1.6-mistral-7b.Q4_K_M.gguf
+
+# Specify the mmproj (multimodal projector) for vision
+ADAPTER ./llava-v1.6-mistral-7b-mmproj-f16.gguf
+
+TEMPLATE """[INST] {{ if .System }}{{ .System }} {{ end }}{{ .Prompt }} [/INST]"""
+
+PARAMETER temperature 0.7
+PARAMETER num_ctx 4096
+```
+
+```bash
+ollama create my-llava -f Modelfile
+
+# Use with the /ask_image endpoint
+curl -X POST http://localhost:8000/ask_image \
+  -F "question=What is in this image?" \
+  -F "model=my-llava" \
+  -F "images=@photo.jpg"
+```
+
+### Common Modelfile Parameters
+
+| Parameter      | Description                                          | Example                  |
+|---------------|------------------------------------------------------|--------------------------|
+| `FROM`        | Path to the GGUF file (required)                     | `FROM ./model.gguf`     |
+| `ADAPTER`     | LoRA adapter or mmproj file for vision models        | `ADAPTER ./lora.gguf`   |
+| `TEMPLATE`    | Chat template format (ChatML, Llama, Mistral, etc.)  | See examples above       |
+| `SYSTEM`      | Default system prompt                                | `SYSTEM """..."""`       |
+| `PARAMETER`   | Set parameters (temperature, top_p, num_ctx, etc.)   | `PARAMETER num_ctx 8192` |
+| `LICENSE`     | Specify the model's license                          | `LICENSE """MIT"""`      |
+
+### Managing Created Models
+
+```bash
+# List all models
+ollama list
+
+# Show model details
+ollama show my-custom-model
+
+# Delete a model
+ollama rm my-custom-model
+
+# Copy a model (create an alias)
+ollama cp my-custom-model my-model-v2
+```
+
 ## Requirements
 
 - Python 3.10+
