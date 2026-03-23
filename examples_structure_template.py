@@ -125,12 +125,141 @@ EXAMPLE_TEMPLATES = {
                 }
             ]
         }
+    },
+
+    # ----- Image / Vision examples -----
+    "image_describe": {
+        "description": "Describe an image in detail (requires vision model e.g. llava, moondream)",
+        "question": "Describe this image in detail. What do you see?",
+        "note": "Send base64-encoded image in the 'images' field, or use POST /ask_image to upload file directly",
+        "structure_template": None,
+        "required_model_type": "vision (e.g. llava:7b, moondream, bakllava, minicpm-v)"
+    },
+    "image_structured_analysis": {
+        "description": "Analyze an image and return structured JSON output",
+        "question": "Analyze this image and extract the information.",
+        "note": "Send base64-encoded image in the 'images' field, or use POST /ask_image to upload file directly",
+        "structure_template": {
+            "description": "string - detailed description of the image",
+            "objects_detected": ["string - list of objects visible in the image"],
+            "colors": ["string - dominant colors in the image"],
+            "scene_type": "string (indoor/outdoor/abstract/document/other)",
+            "mood": "string - overall mood or atmosphere",
+            "text_in_image": "string or null - any text visible in the image"
+        },
+        "required_model_type": "vision (e.g. llava:7b, moondream, bakllava, minicpm-v)"
+    },
+    "image_ocr": {
+        "description": "Extract text from an image (OCR)",
+        "question": "Read and extract all text from this image. Return the text exactly as it appears.",
+        "note": "Send base64-encoded image in the 'images' field, or use POST /ask_image to upload file directly",
+        "structure_template": {
+            "extracted_text": "string - all text found in the image",
+            "language": "string - detected language of the text",
+            "confidence": "string (high/medium/low)"
+        },
+        "required_model_type": "vision (e.g. llava:7b, moondream, bakllava, minicpm-v)"
+    },
+    "image_comparison": {
+        "description": "Compare two images (send 2 images in the images array)",
+        "question": "Compare these two images. What are the similarities and differences?",
+        "note": "Send 2 base64-encoded images in the 'images' field, or upload 2 files via POST /ask_image",
+        "structure_template": {
+            "image_1_description": "string",
+            "image_2_description": "string",
+            "similarities": ["string"],
+            "differences": ["string"],
+            "conclusion": "string"
+        },
+        "required_model_type": "vision (e.g. llava:7b, moondream, bakllava, minicpm-v)"
+    },
+    "image_food_analysis": {
+        "description": "Analyze a food image and estimate nutrition",
+        "question": "What food is in this image? Estimate the nutrition information.",
+        "note": "Send base64-encoded image in the 'images' field, or use POST /ask_image to upload file directly",
+        "structure_template": {
+            "food_name": "string",
+            "ingredients": ["string"],
+            "estimated_calories": "number",
+            "nutrition": {
+                "protein_g": "number",
+                "carbs_g": "number",
+                "fat_g": "number"
+            },
+            "cuisine_type": "string",
+            "is_healthy": "boolean"
+        },
+        "required_model_type": "vision (e.g. llava:7b, moondream, bakllava, minicpm-v)"
     }
 }
 
 # ---------------------------------------------------------------------------
 # Swagger examples for AskRequest (shown in POST /ask docs)
 # ---------------------------------------------------------------------------
+
+# Placeholder base64 for documentation (1x1 red pixel PNG)
+_SAMPLE_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg=="
+
+ASK_IMAGE_REQUEST_EXAMPLES = [
+    {
+        "summary": "Describe an image (free-form answer)",
+        "value": {
+            "question": "What is in this image? Describe it in detail.",
+            "model": "llava:7b",
+            "images": [_SAMPLE_BASE64],
+            "structure_template": None,
+            "temperature": 0.7
+        }
+    },
+    {
+        "summary": "Analyze an image with structured output",
+        "value": {
+            "question": "Analyze this image and extract the information.",
+            "model": "llava:7b",
+            "images": [_SAMPLE_BASE64],
+            "structure_template": {
+                "description": "string",
+                "objects_detected": ["string"],
+                "colors": ["string"],
+                "scene_type": "string (indoor/outdoor/abstract/document/other)",
+                "mood": "string",
+                "text_in_image": "string or null"
+            },
+            "temperature": 0.5
+        }
+    },
+    {
+        "summary": "OCR - extract text from image",
+        "value": {
+            "question": "Read and extract all text from this image.",
+            "model": "llava:7b",
+            "images": [_SAMPLE_BASE64],
+            "structure_template": {
+                "extracted_text": "string",
+                "language": "string",
+                "confidence": "string (high/medium/low)"
+            },
+            "temperature": 0.3
+        }
+    },
+    {
+        "summary": "Thai - วิเคราะห์รูปภาพอาหาร",
+        "value": {
+            "question": "อาหารในรูปนี้คืออะไร? วิเคราะห์ข้อมูลโภชนาการ",
+            "model": "llava:7b",
+            "images": [_SAMPLE_BASE64],
+            "structure_template": {
+                "food_name": "ชื่ออาหาร",
+                "ingredients": ["วัตถุดิบ"],
+                "estimated_calories": "number",
+                "cuisine_type": "ประเภทอาหาร",
+                "is_healthy": "boolean"
+            },
+            "temperature": 0.5
+        }
+    }
+]
+
 ASK_REQUEST_EXAMPLES = [
     {
         "model": "qwen3.5:0.8b",
@@ -172,5 +301,26 @@ ASK_REQUEST_EXAMPLES = [
             "summary": "string"
         },
         "temperature": 0.7
+    },
+    # ----- Image / Vision examples -----
+    {
+        "question": "What is in this image? Describe it in detail.",
+        "model": "llava:7b",
+        "images": [_SAMPLE_BASE64],
+        "structure_template": None,
+        "temperature": 0.7
+    },
+    {
+        "question": "Analyze this image and extract the information.",
+        "model": "llava:7b",
+        "images": [_SAMPLE_BASE64],
+        "structure_template": {
+            "description": "string",
+            "objects_detected": ["string"],
+            "colors": ["string"],
+            "scene_type": "string (indoor/outdoor/abstract/document/other)",
+            "text_in_image": "string or null"
+        },
+        "temperature": 0.5
     }
 ]

@@ -19,8 +19,10 @@ A FastAPI wrapper around [Ollama](https://ollama.com) that provides an open API 
 
 ```
 .
-├── app.py                  # FastAPI application (main API code)
-├── requirements.txt        # Python dependencies
+├── app.py                         # FastAPI application (main API code)
+├── examples_structure_template.py # Example templates & Swagger examples
+├── ollama_parameters.py           # Ollama parameter definitions
+├── requirements.txt               # Python dependencies
 ├── .env                    # Configuration (ports, URLs, default model)
 ├── .env.example            # Configuration template
 ├── Dockerfile              # Container image for the API
@@ -97,13 +99,14 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 
 ## API Endpoints
 
-| Method | Endpoint     | Description                              |
-|--------|-------------|------------------------------------------|
-| POST   | `/ask`      | Ask a question to an Ollama model        |
-| GET    | `/models`   | List available Ollama models             |
-| GET    | `/examples` | Get example structure templates          |
-| GET    | `/health`   | Health check (API + Ollama connectivity) |
-| GET    | `/docs`     | Swagger UI (interactive API docs)        |
+| Method | Endpoint      | Description                                      |
+|--------|--------------|--------------------------------------------------|
+| POST   | `/ask`       | Ask a question (supports text + base64 images)   |
+| POST   | `/ask_image` | Ask with image file upload (multipart/form-data) |
+| GET    | `/models`    | List available Ollama models                     |
+| GET    | `/examples`  | Get example structure templates                  |
+| GET    | `/health`    | Health check (API + Ollama connectivity)         |
+| GET    | `/docs`      | Swagger UI (interactive API docs)                |
 
 ## Usage Examples
 
@@ -162,6 +165,69 @@ curl -X POST http://localhost:8000/ask \
   }'
 ```
 
+### Image Input — base64 via `/ask`
+
+Send base64-encoded images alongside your question. Requires a **vision-capable model** (e.g. `llava`, `llava-llama3`, `moondream`, `bakllava`, `minicpm-v`).
+
+```bash
+# Encode an image to base64
+IMAGE_B64=$(base64 -w0 photo.jpg)   # Linux
+IMAGE_B64=$(base64 -i photo.jpg)    # macOS
+
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What is in this image? Describe it in detail.",
+    "model": "llava:7b",
+    "images": ["'"$IMAGE_B64"'"]
+  }'
+```
+
+With structured output:
+
+```bash
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Analyze this image and extract information.",
+    "model": "llava:7b",
+    "images": ["'"$IMAGE_B64"'"],
+    "structure_template": {
+      "description": "string",
+      "objects_detected": ["string"],
+      "colors": ["string"],
+      "scene_type": "string (indoor/outdoor/abstract/document/other)",
+      "text_in_image": "string or null"
+    }
+  }'
+```
+
+### Image Input — file upload via `/ask_image`
+
+Upload image files directly using multipart/form-data (no base64 encoding needed):
+
+```bash
+# Single image
+curl -X POST http://localhost:8000/ask_image \
+  -F "question=What is in this image?" \
+  -F "model=llava:7b" \
+  -F "images=@photo.jpg"
+
+# Multiple images
+curl -X POST http://localhost:8000/ask_image \
+  -F "question=Compare these two images" \
+  -F "model=llava:7b" \
+  -F "images=@photo1.jpg" \
+  -F "images=@photo2.jpg"
+
+# With structured output
+curl -X POST http://localhost:8000/ask_image \
+  -F "question=What food is this? Estimate nutrition." \
+  -F "model=llava:7b" \
+  -F 'structure_template={"food_name":"string","ingredients":["string"],"estimated_calories":"number"}' \
+  -F "images=@food.jpg"
+```
+
 ### List Models
 
 ```bash
@@ -174,16 +240,17 @@ curl http://localhost:8000/models
 curl http://localhost:8000/examples
 ```
 
-Available templates: `person_info`, `product_review`, `translate`, `code_explanation`, `comparison`, `summary`, `sentiment_and_data_extraction`
+Available templates: `person_info`, `product_review`, `translate`, `code_explanation`, `comparison`, `summary`, `sentiment_and_data_extraction`, `insight_extraction`, `image_describe`, `image_structured_analysis`, `image_ocr`, `image_comparison`, `image_food_analysis`
 
 ## Request Parameters
 
-| Parameter            | Type   | Required | Default    | Description                                  |
-|---------------------|--------|----------|------------|----------------------------------------------|
-| `question`          | string | Yes      | -          | The question/prompt to send                  |
-| `model`             | string | No       | `"llama3"` | Ollama model name                            |
-| `structure_template`| dict   | No       | `null`     | JSON template to force structured output     |
-| `temperature`       | float  | No       | `0.7`      | Sampling temperature (0.0 - 2.0)             |
+| Parameter            | Type       | Required | Default    | Description                                         |
+|---------------------|------------|----------|------------|-----------------------------------------------------|
+| `question`          | string     | Yes      | -          | The question/prompt to send                         |
+| `model`             | string     | No       | `"llama3"` | Ollama model name                                   |
+| `structure_template`| dict       | No       | `null`     | JSON template to force structured output            |
+| `images`            | list[str]  | No       | `null`     | Base64-encoded images (requires vision model)       |
+| `temperature`       | float      | No       | `0.7`      | Sampling temperature (0.0 - 2.0)                    |
 
 ## Response Format
 
@@ -259,6 +326,22 @@ Without `structure_template`, the model answers freely in plain text. With it, t
 | 4xx/5xx| Ollama HTTP Error   | Forwarded from Ollama response          |
 
 Resource collection (CPU, GPU) failures are handled gracefully — fields return `null` instead of crashing.
+
+## Vision Models (for Image Input)
+
+To use the image features, pull a vision-capable model:
+
+```bash
+ollama pull llava:7b
+ollama pull moondream
+ollama pull bakllava
+ollama pull minicpm-v
+
+# Docker
+docker exec ollama ollama pull llava:7b
+```
+
+Supported image formats: PNG, JPEG, WebP, GIF
 
 ## Pull More Models
 

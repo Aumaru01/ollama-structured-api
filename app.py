@@ -6,16 +6,16 @@ Ollama Self-Hosted LLM API
 
 import time
 import json
+import base64
 import httpx
 import psutil
 import subprocess
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional
-from typing import Union, Optional
+from typing import Optional, Union, List
 
-from examples_structure_template import EXAMPLE_TEMPLATES, ASK_REQUEST_EXAMPLES
+from examples_structure_template import EXAMPLE_TEMPLATES, ASK_REQUEST_EXAMPLES, ASK_IMAGE_REQUEST_EXAMPLES
 from ollama_parameters import OLLAMA_PARAMETERS
 
 # ---------------------------------------------------------------------------
@@ -52,6 +52,14 @@ class AskRequest(BaseModel):
             "Optional JSON structure template. When provided, the model will be "
             "instructed to return its answer strictly in this format. "
             "See GET /examples for ready-to-use templates."
+        ),
+    )
+    images: Optional[List[str]] = Field(
+        default=None,
+        description=(
+            "Optional list of base64-encoded images. Requires a vision-capable model "
+            "(e.g. llava, llava-llama3, moondream, bakllava, minicpm-v). "
+            "Each string should be the raw base64 data (without 'data:image/...;base64,' prefix)."
         ),
     )
     temperature: Optional[float] = Field(default=0.7, ge=0.0, le=2.0, description="Sampling temperature")
@@ -192,6 +200,16 @@ async def ask(req: AskRequest):
         },
     }
 
+    # If images are provided, pass them to Ollama (requires vision model)
+    if req.images:
+        # Strip data URI prefix if present (e.g. "data:image/png;base64,...")
+        cleaned_images = []
+        for img in req.images:
+            if "," in img and img.startswith("data:"):
+                img = img.split(",", 1)[1]
+            cleaned_images.append(img)
+        payload["images"] = cleaned_images
+
     # If structure_template is provided, also pass format=json to Ollama
     if req.structure_template is not None:
         payload["format"] = "json"
@@ -257,6 +275,77 @@ async def ask(req: AskRequest):
     )
     
     
+# ---------------------------------------------------------------------------
+# Image upload endpoint
+# ---------------------------------------------------------------------------
+@app.post("/ask_image", summary="Ask a question with image file upload", response_model=AskResponse)
+async def ask_image(
+    question: str = Form(..., description="The question or prompt to send to the model"),
+    model: str = Form(default="llava:7b", description="Vision-capable Ollama model (e.g. llava, moondream, bakllava, minicpm-v)"),
+    images: List[UploadFile] = File(..., description="One or more image files (PNG, JPG, WEBP, GIF)"),
+    structure_template: Optional[str] = Form(
+        default=None,
+        description="Optional JSON structure template as a JSON string",
+    ),
+    temperature: Optional[float] = Form(default=0.7, ge=0.0, le=2.0, description="Sampling temperature"),
+):
+    """
+    Upload image files and ask a vision model about them.
+
+    This is a convenience endpoint that accepts multipart/form-data
+    so you can upload image files directly instead of base64-encoding them.
+
+    **Requires a vision-capable model** such as:
+    `llava`, `llava-llama3`, `moondream`, `bakllava`, `minicpm-v`
+
+    Example using curl:
+    ```bash
+    curl -X POST http://localhost:8000/ask_image \\
+      -F "question=What is in this image?" \\
+      -F "model=llava:7b" \\
+      -F "images=@photo.jpg"
+    ```
+
+    Example with multiple images:
+    ```bash
+    curl -X POST http://localhost:8000/ask_image \\
+      -F "question=Compare these two images" \\
+      -F "model=llava:7b" \\
+      -F "images=@photo1.jpg" \\
+      -F "images=@photo2.jpg"
+    ```
+    """
+    # Parse structure_template from JSON string if provided
+    parsed_template = None
+    if structure_template:
+        try:
+            parsed_template = json.loads(structure_template)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=422, detail="structure_template must be valid JSON")
+
+    # Read and base64-encode uploaded images
+    base64_images = []
+    allowed_types = {"image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"}
+    for img_file in images:
+        if img_file.content_type and img_file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported image type: {img_file.content_type}. Allowed: {', '.join(allowed_types)}"
+            )
+        content = await img_file.read()
+        base64_images.append(base64.b64encode(content).decode("utf-8"))
+
+    # Delegate to the main ask logic
+    req = AskRequest(
+        question=question,
+        model=model,
+        structure_template=parsed_template,
+        images=base64_images,
+        temperature=temperature,
+    )
+    return await ask(req)
+
+
 # ---------------------------------------------------------------------------
 # Endpoints for metadata (models, examples, parameters)
 # ---------------------------------------------------------------------------
